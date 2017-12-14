@@ -316,7 +316,7 @@
 
 	function Geofence_Data($Geo_User_Account_ID){
 		
-		$Mysql_Query = "select * from geo_fence where user_account_id = '".$Geo_User_Account_ID."'";
+		$Mysql_Query = "select * from geo_fence1 where user_account_id = '".$Geo_User_Account_ID."'";
 		$Mysql_Query_Result = mysql_query($Mysql_Query) or die(mysql_error());
 		$Mysql_Record_Count = mysql_num_rows($Mysql_Query_Result);
 		if($Mysql_Record_Count > 0){
