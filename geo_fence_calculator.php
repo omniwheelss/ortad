@@ -51,7 +51,7 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST[
 				$Location_Name = $Query_Result['location'];
 				$Device_Date_Stamp = $Query_Result['device_date_stamp'];
 				$Server_Date_Stamp = date("Y-m-d H:i:s");
-				$Table_Name = 'geo_fence';
+				$Table_Name = 'geo_fence1';
 				
 				//Geofence Calculator
 				$Geofence_Decide_InOut_Array = Geofence_Decide_InOut($Get_AccountID_IMEI, $Latitude, $Longitude, $Device_Date_Stamp, $Table_Name);
