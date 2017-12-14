@@ -3,7 +3,7 @@
 if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST['from']) && isset($_REQUEST['to']) ){
 
 	include_once("./lib/includes.php");
-	$Table_Name = 'geo_fence_alerts';
+	$Table_Name = 'geo_fence_alerts1';
 	
 	$From_Date = $_REQUEST['from'];
 	$To_Date = $_REQUEST['to'];
@@ -57,7 +57,7 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST[
 				$Geofence_Decide_InOut_Array = Geofence_Decide_InOut($Get_AccountID_IMEI, $Latitude, $Longitude, $Device_Date_Stamp, $Table_Name);
 
 				//Geofence Calculator
-				$Geofence_Decision_Maker_Status = Geofence_Decision_Maker($Geofence_Decide_InOut_Array, $Get_AccountID_IMEI, $Latitude, $Longitude, $Location_Name, $IMEI, $Device_Date_Stamp, $Table_Name = 'geo_fence_alerts');
+				$Geofence_Decision_Maker_Status = Geofence_Decision_Maker($Geofence_Decide_InOut_Array, $Get_AccountID_IMEI, $Latitude, $Longitude, $Location_Name, $IMEI, $Device_Date_Stamp, $Table_Name = 'geo_fence_alerts1');
 				
 				if($Geofence_Decision_Maker_Status)
 					$Result[] = "<br />Finished for ".$IMEI."--On--".$Date."<br />";
