@@ -144,7 +144,7 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST[
 				echo "<br />Finished for ".$IMEI."--On--".$Date_Val."";	
 			}	
 			else{
-				echo "Already genereated for ".$Date_Val." - ".$IMEI."";
+				echo "<br />Already genereated for ".$Date_Val." - ".$IMEI."";
 			}
 		}
 	}		
