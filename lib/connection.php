@@ -3,7 +3,7 @@
 // DB Connection 
 	$hostname="localhost";
 	$username="root";
-	$password="0range123";
+	$password="";
 	$dbname = "vts";
 	$conn=mysql_connect($hostname,$username,$password);
 	$db=mysql_select_db($dbname,$conn);

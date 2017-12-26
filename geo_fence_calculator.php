@@ -3,7 +3,8 @@
 if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST['from']) && isset($_REQUEST['to']) ){
 
 	include_once("./lib/includes.php");
-	$Table_Name = 'geo_fence_alerts1';
+	$POI_Alerts_Table_Name = 'geo_fence_alerts';
+	$POI_Table_Name = 'geo_fence';
 	
 	$From_Date = $_REQUEST['from'];
 	$To_Date = $_REQUEST['to'];
@@ -34,7 +35,7 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST[
 	#
 	############################################
 
-	function Geofence_Calculator_Report($Date, $IMEI, $Get_AccountID_IMEI){
+	function Geofence_Calculator_Report($Date, $IMEI, $Get_AccountID_IMEI,$POI_Table_Name, $POI_Alerts_Table_Name){
 		
 		$Result = null;
 		$Date_From = $Date. " 00:00:00";
@@ -51,13 +52,12 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST[
 				$Location_Name = $Query_Result['location'];
 				$Device_Date_Stamp = $Query_Result['device_date_stamp'];
 				$Server_Date_Stamp = date("Y-m-d H:i:s");
-				$Table_Name = 'geo_fence1';
 				
 				//Geofence Calculator
-				$Geofence_Decide_InOut_Array = Geofence_Decide_InOut($Get_AccountID_IMEI, $Latitude, $Longitude, $Device_Date_Stamp, $Table_Name);
+				$Geofence_Decide_InOut_Array = Geofence_Decide_InOut($Get_AccountID_IMEI, $Latitude, $Longitude, $Device_Date_Stamp, $POI_Table_Name);
 
 				//Geofence Calculator
-				$Geofence_Decision_Maker_Status = Geofence_Decision_Maker($Geofence_Decide_InOut_Array, $Get_AccountID_IMEI, $Latitude, $Longitude, $Location_Name, $IMEI, $Device_Date_Stamp, $Table_Name = 'geo_fence_alerts1');
+				$Geofence_Decision_Maker_Status = Geofence_Decision_Maker($Geofence_Decide_InOut_Array, $Get_AccountID_IMEI, $Latitude, $Longitude, $Location_Name, $IMEI, $Device_Date_Stamp, $POI_Alerts_Table_Name);
 				
 				if($Geofence_Decision_Maker_Status)
 					$Result[] = "<br />Finished for ".$IMEI."--On--".$Date."<br />";
@@ -131,7 +131,7 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST[
 		// For all the IMEI
 		foreach($IMEI_Array as $IMEI){
 			
-			$Check_Exist_Result = Check_Exist($Table_Name, "date(date_stamp) = '".$Date_Val."' and imei = ".$IMEI." ");
+			$Check_Exist_Result = Check_Exist($POI_Alerts_Table_Name, "date(date_stamp) = '".$Date_Val."' and imei = ".$IMEI." ");
 
 			if($Check_Exist_Result == 0){
 
@@ -139,7 +139,7 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST[
 				$Get_AccountID_IMEI = Get_AccountID_IMEI($IMEI);
 					
 				// Call the Geofence Calculation Report
-				$Geofence_Calculator_Result = Geofence_Calculator_Report($Date_Val, $IMEI, $Get_AccountID_IMEI);
+				$Geofence_Calculator_Result = Geofence_Calculator_Report($Date_Val, $IMEI, $Get_AccountID_IMEI,	$POI_Table_Name, $POI_Alerts_Table_Name);
 			
 				echo "<br />Finished for ".$IMEI."--On--".$Date_Val."";	
 			}	
