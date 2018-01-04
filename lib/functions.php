@@ -364,9 +364,9 @@
 					$Trip_Status = "OUT";
 					$Result[] = array($Trip_Index, $Trip_Status, $Distance);
 				}
-				$Debug_Result.= "Trip -".$Trip_Index."---".$Device_Date_Stamp."--Distance--".$Distance."--Status--".$Trip_Status."<br />";
+				//$Debug_Result.= "Trip -".$Trip_Index."---".$Device_Date_Stamp."--Distance--".$Distance."--Status--".$Trip_Status."<br />";
 			}
-			echo $Debug_Result;
+			//echo $Debug_Result;
 			return $Result;
 		}			
 	}
@@ -385,7 +385,7 @@
 		$Mysql_Query = "INSERT INTO ".$Table_Name." (date_stamp,server_date_stamp,imei,latitude,longitude,location_name,status,alert_dispatch,trip_index,raw_data,epoch_time) values ('".$Device_Date_Stamp."','".$Server_Date_Stamp."','".$IMEI."','".$Latitude."','".$Longitude."','".$Location_Name."','".$Trip_Status."','".$Alert_Dispatch."','".$Trip_Index."','".$Data."','".strtotime($Device_Date_Stamp)."')";
 		$Mysql_Query_Result = mysql_query($Mysql_Query) or die(mysql_error());
 		if($Mysql_Query_Result){
-			$Debug_Msg = "Inserted ".$Trip_Status." trip ".$Trip_Index."<br />";
+			//$Debug_Msg = "Inserted ".$Trip_Status." trip ".$Trip_Index."<br />";
 			$Result = true;
 		}
 		echo $Debug_Msg;
@@ -402,12 +402,15 @@
 	function Geofence_Alerts_Exist($IMEI, $Trip_Index, $Table_Name){
 		
 		$Result = null;
-		$Mysql_Query = "select * from ".$Table_Name." where IMEI = '".$IMEI."' and Trip_Index = '".$Trip_Index."' order by id desc limit 1";
+		$Mysql_Query = "select * from ".$Table_Name." where IMEI = '".$IMEI."' and Trip_Index = '".$Trip_Index."' order by date_Stamp desc limit 1";
 		$Mysql_Query_Result = mysql_query($Mysql_Query) or die(mysql_error());
 		$Mysql_Record_Count = mysql_num_rows($Mysql_Query_Result);
 		if($Mysql_Record_Count > 0){
 			$Query_Result = mysql_fetch_array($Mysql_Query_Result);
 			$Result = $Query_Result['status'];
+		}
+		else{
+			$Result = null;
 		}
 		return $Result;
 	}
@@ -588,41 +591,24 @@
 	#
 	############################################
 
-	function Get_EpochDiff_Vehicle($Epoch1,$Epoch2, $Previous_Status, $Current_Status, $Diff_Record){
-
+	function Get_EpochDiff_Vehicle($Epoch1,$Epoch2, $Array_Type){
+		
 		$Result = null;
 		if(!empty($Epoch1) && !empty($Epoch2)){	
 		
-			// Result
-			$Result = $Epoch2 - $Epoch1;
-			
-			if($Diff_Record == 0){
-				
-				if($Current_Status == 'Moving'){
-					if($Result > 60)
-						$Result = 60;
-				}
-				else if($Current_Status == 'Stopped'){
-					if($Result > 300)
-						$Result = 300;
-				}
-				else if($Current_Status == 'Idle'){
-					if($Result > 60)
-						$Result = 60;
-				}
+			if($Array_Type == 'Moving' || $Array_Type == 'Idle' ||  $Array_Type == 'Unknown'){
+				$Result = $Epoch2 - $Epoch1;
+				if($Result > 120)
+					$Result = 60;
 			}
-			else if ($Diff_Record == 1){
-				
-				if($Previous_Status == 'Stopped' && $Current_Status == 'Idle' || $Previous_Status == 'Idle' && $Current_Status == 'Stopped'  || $Previous_Status == 'Moving' && $Current_Status == 'Stopped' || $Previous_Status == 'Stopped' && $Current_Status == 'Moving'){
-					if($Result > 300)
-						$Result = 300;
-				}
-				else if($Previous_Status == 'Idle' && $Current_Status == 'Moving' || $Previous_Status == 'Moving' && $Current_Status == 'Idle'){
-					if($Result > 60)
-						$Result = 60;
-				}
+			else if($Array_Type == 'Stopped'){
+				$Result = $Epoch2 - $Epoch1;
+				if($Result > 600)
+					$Result = 300;
 			}
-			
+			else{
+				$Result = $Epoch2 - $Epoch1;
+			}
 		}
 		return $Result;
 	}
@@ -784,7 +770,7 @@
 	#
 	############################################
 	
-	function Diff_Between_Records($Type, $Get_Array, $Previous_Status, $Current_Status, $Diff_Record){
+	function Diff_Between_Records($Type, $Get_Array, $Array_Type){
 		$Result = null;
 		$Array_Count = count($Get_Array); 
 		if($Array_Count > 0){
@@ -799,7 +785,7 @@
 						$Result[] = Get_TimeDiff($Get_Array[$I],$Get_Array[$I+1]);
 					}
 					else if ($Type == 'epoch'){
-						$Result[] = Get_EpochDiff_Vehicle($Get_Array[$I],$Get_Array[$I+1], $Previous_Status, $Current_Status, $Diff_Record);
+						$Result[] = Get_EpochDiff_Vehicle($Get_Array[$I],$Get_Array[$I+1], $Array_Type);
 					}
 				}
 				$I++;
@@ -1220,5 +1206,56 @@
 		}
 		return $Result;
 	}
+	
+	############################################
+	# 
+	#	Geofence Calculator
+	#
+	############################################	
+
+	function Geofence_Decision_Maker($Geofence_Decide_InOut_Array, $Get_AccountID_IMEI, $Latitude, $Longitude, $Location_Name, $IMEI, $Device_Date_Stamp, $Table_Name){
+		// Gefence Insert
+		if(count($Geofence_Decide_InOut_Array) > 0){
+			
+			$G = 0;
+			foreach($Geofence_Decide_InOut_Array as $Geofence_Decide_InOut_Val){
+			
+				$Trip_Index = $Geofence_Decide_InOut_Val[0];
+				$Trip_Status[$Trip_Index] = $Geofence_Decide_InOut_Val[1];
+				$Distance[$Trip_Index] = $Geofence_Decide_InOut_Val[2];
+				$Alert_Dispatch = 0;
+				$Server_Date_Stamp = date("Y-m-d H:i:s");
+
+			
+					
+				// Check Geofence exist or not
+				$Geofence_Existing_Alerts_Status[$Trip_Index] = Geofence_Alerts_Exist($IMEI, $Trip_Index, $Table_Name);
+				
+				// First Time Geo Fence
+				if(empty($Geofence_Existing_Alerts_Status[$Trip_Index]) && $Trip_Status[$Trip_Index] != 'OUT'){
+					$Geofence_Alerts_Insert = Geofence_Alerts_Insert($Get_AccountID_IMEI, $IMEI, $Latitude, $Longitude, $Location_Name, $Trip_Status[$Trip_Index],$Alert_Dispatch, $Trip_Index, $Device_Date_Stamp, $Server_Date_Stamp, $Data, $Table_Name);
+				}
+				else{
+					//Insert Geofence once data inserted for first time
+					if ($Geofence_Existing_Alerts_Status[$Trip_Index] == 'IN' && $Trip_Status[$Trip_Index] == 'OUT'){
+						
+						$Geofence_Alerts_Insert = Geofence_Alerts_Insert($Get_AccountID_IMEI, $IMEI, $Latitude, $Longitude, $Location_Name, $Trip_Status[$Trip_Index],$Alert_Dispatch, $Trip_Index, $Device_Date_Stamp, $Server_Date_Stamp, $Data, $Table_Name);
+						
+					}
+					else if ($Geofence_Existing_Alerts_Status[$Trip_Index] == 'OUT' && $Trip_Status[$Trip_Index] == 'IN'){
+						
+						$Geofence_Alerts_Insert = Geofence_Alerts_Insert($Get_AccountID_IMEI, $IMEI, $Latitude, $Longitude, $Location_Name, $Trip_Status[$Trip_Index],$Alert_Dispatch, $Trip_Index, $Device_Date_Stamp, $Server_Date_Stamp, $Data, $Table_Name);
+					}
+				}
+				$G++;
+			}
+			
+		}	
+		//echo $Debug_Result.="<hr />";
+		if($Geofence_Alerts_Insert)
+			return true;
+		else
+			return false;
+	}	
 ?>
 
