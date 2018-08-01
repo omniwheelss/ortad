@@ -1,5 +1,4 @@
 <?php
-
 	// For error free page
 	error_reporting (0);
 	
@@ -340,7 +339,7 @@
 	function Geofence_Decide_InOut($Geo_User_Account_ID, $Latitude, $Longitude, $Device_Date_Stamp, $Table_Name){
 		
 		$Result = null;
-		$Mysql_Query = "select * from ".$Table_Name." where user_account_id = '".$Geo_User_Account_ID."'";
+		$Mysql_Query = "select * from ".$Table_Name." where user_account_id = '".$Geo_User_Account_ID."' and id in (1,2,3,4)";
 		$Mysql_Query_Result = mysql_query($Mysql_Query) or die(mysql_error());
 		$Mysql_Record_Count = mysql_num_rows($Mysql_Query_Result);
 		if($Mysql_Record_Count >= 1){
@@ -364,7 +363,7 @@
 					$Trip_Status = "OUT";
 					$Result[] = array($Trip_Index, $Trip_Status, $Distance);
 				}
-				//$Debug_Result.= "Trip -".$Trip_Index."---".$Device_Date_Stamp."--Distance--".$Distance."--Status--".$Trip_Status."<br />";
+				$Debug_Result.= "Trip -".$Trip_Index."---".$Device_Date_Stamp."--Distance--".$Distance."--Status--".$Trip_Status."<br />";
 			}
 			//echo $Debug_Result;
 			return $Result;
@@ -388,7 +387,7 @@
 			//$Debug_Msg = "Inserted ".$Trip_Status." trip ".$Trip_Index."<br />";
 			$Result = true;
 		}
-		echo $Debug_Msg;
+		//echo $Debug_Msg;
 		return $Result;
 	}
 		
@@ -771,6 +770,7 @@
 	############################################
 	
 	function Diff_Between_Records($Type, $Get_Array, $Array_Type){
+	//function Diff_Between_Records($Type, $Get_Array, $Previous_Status, $Current_Status, $Diff_Record){
 		$Result = null;
 		$Array_Count = count($Get_Array); 
 		if($Array_Count > 0){
@@ -785,7 +785,9 @@
 						$Result[] = Get_TimeDiff($Get_Array[$I],$Get_Array[$I+1]);
 					}
 					else if ($Type == 'epoch'){
+						//echo $Get_Array[$I],$Get_Array[$I+1], $Array_Type."<br />";
 						$Result[] = Get_EpochDiff_Vehicle($Get_Array[$I],$Get_Array[$I+1], $Array_Type);
+						//$Result[] = Get_EpochDiff_Vehicle($Get_Array[$I],$Get_Array[$I+1], $Previous_Status, $Current_Status, $Diff_Record);
 					}
 				}
 				$I++;
@@ -803,7 +805,7 @@
 	#    Vehicle Data Current Status
 	#
 	############################################
-		
+	/*	
 	function Data_Current_Status($GPS_Move_Status, $Speed, $IGN, $Alert_Msg_Code){
 		$Alert_Msg_Code = explode("|",$Alert_Msg_Code);
 
@@ -830,7 +832,32 @@
 		}
 		return $Result = array($Status, $IGN, $Status_Icon);	
 	}
+*/
+	function Data_Current_Status($GPS_Move_Status, $Speed, $IGN, $Alert_Msg_Code){
+		$Alert_Msg_Code = explode("|",$Alert_Msg_Code);
 
+		$Result = null;
+		// Moving Status
+		if($Speed > 10 && $IGN == 1){
+			$Status = "Moving";
+			$IGN = "On";
+			$Status_Icon = "green.png";
+		}
+		// Stopped Status
+		else if($Speed == 0 && $IGN == 0){
+			$Status = "Stopped";
+			$IGN = "Off";
+			$Status_Icon = "red.png";
+		}
+		// Idle Status
+		else if(($Speed <= 10 && $IGN == 1) || $Alert_Msg_Code[0] == 'VI'){
+			$Status = "Idle";
+			$IGN = "On";
+			//$Speed = 0;
+			$Status_Icon = "orange.png";
+		}
+		return $Result = array($Status, $IGN, $Status_Icon);	
+	}
 
 		
 	
@@ -983,6 +1010,8 @@
 		
 		$Total_Seperated_Time = $DateTime_Moving_Diff + $DateTime_Stopped_Diff + $DateTime_Idle_Diff + $DateTime_Unknown_Diff;
 		$Total_Seperated_Time = Epoch_To_Time($Total_Seperated_Time);
+		
+		$Diff_Time = Epoch_To_Time(array_sum($All_DateTime_NE_Diff));
 		/*
 		echo "<hr /><h4>Total Up Time -- ".$Total_Pocket_Time;
 		echo "<br />Total Seperated Up Time -- ".Epoch_To_Time($Total_Seperated_Time);
@@ -996,8 +1025,10 @@
 		echo "<br />Diff Stopped Time -- ".Epoch_To_Time(array_sum($Decision_Maker_Stopped_Diff));
 		echo "<br />Diff Idle Time -- ".Epoch_To_Time(array_sum($Decision_Maker_Idle_Diff));
 		echo "<br />Diff Unknown Time -- ".Epoch_To_Time(array_sum($Decision_Maker_Unknown_Diff));
+		echo "<br />Diff Time -- ".Epoch_To_Time(array_sum($All_DateTime_NE_Diff));
+		
 		*/
-		return array($Speed_Array, $Total_Pocket_Time, $Total_Seperated_Time, $Total_Moving_Pocket_Time, $Total_Stopped_Pocket_Time, $Total_Idle_Pocket_Time, $Total_Unknown_Pocket_Time);
+		return array($Speed_Array, $Total_Pocket_Time, $Total_Seperated_Time, $Total_Moving_Pocket_Time, $Total_Stopped_Pocket_Time, $Total_Idle_Pocket_Time, $Total_Unknown_Pocket_Time, $Diff_Time);
 	}
 
 
@@ -1095,8 +1126,11 @@
 						
 					}
 					else if($Diff_Record == 1){
+						
 						// All data diff
-						$Pre_Cur_Diff_Val = Diff_Between_Records('epoch', $Pre_Cur_Diff_Array, $Data_Pre_Status_Val, $Data_Cur_Status_Val, $Diff_Record);
+						$Pre_Cur_Diff_Val = Diff_Between_Records('epoch', $Pre_Cur_Diff_Array, $Data_Cur_Status_Val);
+						//$Pre_Cur_Diff_Val = Diff_Between_Records('epoch', $Pre_Cur_Diff_Array, $Data_Pre_Status_Val, $Data_Cur_Status_Val, $Diff_Record);
+						//echo $Pre_Cur_Diff_Val[0]."----".$Result_Array['id'].",".$Pre_Cur_Diff_Array[0].", ".$Data_Pre_Status_Val.", ".$Data_Cur_Status_Val.", ".$Diff_Record."<br />";
 						$Pre_Cur_Diff_Sum = array_sum($Pre_Cur_Diff_Val);
 						$All_DateTime_NE_Diff[] = $Pre_Cur_Diff_Sum;
 
@@ -1226,10 +1260,11 @@
 				$Alert_Dispatch = 0;
 				$Server_Date_Stamp = date("Y-m-d H:i:s");
 
-			
 					
 				// Check Geofence exist or not
 				$Geofence_Existing_Alerts_Status[$Trip_Index] = Geofence_Alerts_Exist($IMEI, $Trip_Index, $Table_Name);
+				
+				//echo "<u>".$IMEI, $Trip_Index, $Table_Name." = ". $Geofence_Existing_Alerts_Status[$Trip_Index]. "</u><br />";				
 				
 				// First Time Geo Fence
 				if(empty($Geofence_Existing_Alerts_Status[$Trip_Index]) && $Trip_Status[$Trip_Index] != 'OUT'){
@@ -1257,5 +1292,120 @@
 		else
 			return false;
 	}	
-?>
+	
+	
+	/*
+	Check SMS alert
+	*/
+	function triggerSMSAlertForDevices($Data){
+		
+		$Results = null;
+		// Formating Data
+		list($Format_Type,$Protocol_Version,$IMEI,$Date_Stamp,$Live_Data,$GPS_Status,$Latitude,$Longitude,$Altitude,$Speed,$Direction,$Odometer,$GPS_Move_Status,$External_Battery_Volt,$Internal_Battery_Percent,$GSM_Signal,$Unused,$Alert_Msg_Code,$Sensor_Interface,$IGN,$Analog_Input1,$Digital_Input1,$Output1,$Sequence_No,$Check_Sum)=explode (",",$Data);
+		
+		//Formatting Date
+		$Date_Format_Val = Date_Format_WTGPS($Date_Stamp);
+		$Device_Date_Stamp = $Date_Format_Val[0];
+		$Device_Epoch_Time = $Date_Format_Val[1];
+		$Date_Stamp = date("d-M-Y h:m a");
+		$alreadyDeviceSent = selDeviceResponseDataByIMEI($IMEI, $Date_Stamp);
+		
+		$Mysql_Query = "call spSelSMSAlertByIMEI('".$IMEI."')";
+		$Mysql_Query_Result = mysql_query($Mysql_Query) or die(mysql_error());
+		$Row_Count = mysql_num_rows($Mysql_Query_Result);
+		if($Row_Count >=1){
+			while($Result_Array = mysql_fetch_array($Mysql_Query_Result)){
+				$SMS_Alert_Name = $Result_Array['sms_alert_name'];
+				$Mobile_Number = $Result_Array['send_mobile'];
+				$Firstname = $Result_Array['firstname'];
+				$Vehicle_No = $Result_Array['vehicle_no'];
+				$SMS_Template = $Result_Array['template_content'];
+				$Device_Command = $Result_Array['device_command'];
+				$Configuration = $Result_Array['configuration'];
+				
+				switch($SMS_Alert_Name){
+					case 'speed_alert':
+						if($Speed == $Configuration){
+							$Results = formatSMSAlert($Firstname, $Vehicle_No, $Speed,$Date_Stamp, $SMS_Template,$Device_Command, $Mobile_Number);
+						}
+					break;	
+					case 'engine_on_alert':
+					case 'engine_off_alert':
+						if($alreadyDeviceSent == 0){
+							if($IGN == 1){
+								$Results = formatSMSAlert($Firstname, $Vehicle_No, $Speed,$Date_Stamp, $SMS_Template,$Device_Command, $Mobile_Number);
+							}
+							else if($IGN == 0){
+								$Results = formatSMSAlert($Firstname, $Vehicle_No, $Speed,$Date_Stamp, $SMS_Template,$Device_Command, $Mobile_Number);
+							}
+						}
+					break;	
+					default:
+					break;
+				}				
+			}	
+		}	
+		return $Results;
+	}
+	
+	
+	/*
+	Check SMS alert
+	*/
+	function formatSMSAlert($Firstname, $Vehicle_No, $Speed,$Date_Stamp, $SMS_Template,$Device_Command, $Mobile_Number){
+		$Results = null;//[VEHICLE_NUMBER] has running at [SPEED] 
 
+		// For SMS
+		$SMS_Template = str_replace('[USER_NAME]', $Firstname, $SMS_Template);
+		$SMS_Template = str_replace('[VEHICLE_NUMBER]', $Vehicle_No, $SMS_Template);
+		$SMS_Template = str_replace('[SPEED]', $Speed, $SMS_Template);
+		$SMS_Template = str_replace('[DATE_TIME]', $Date_Stamp, $SMS_Template);
+
+		// For Device_Command	//$IPCFG,<DEVCMD: SMS=[MOBILE_NUMBER],[MESSAGE] >
+		$Device_Command_Template = str_replace('[MOBILE_NUMBER]', $Mobile_Number, $Device_Command);
+		$Device_Command_Template = str_replace('[MESSAGE]', $SMS_Template, $Device_Command_Template);
+		
+		return trim($Device_Command_Template);
+	}
+	
+	
+	/*
+	Device response data
+	*/
+	function insertDeviceResponseData($deviceResponseData){
+		
+		$Result = false;
+		$deviceResponseData = join($deviceResponseData);
+		$deviceResponseDataExplode = explode(",", $deviceResponseData);
+		$commandPrefix = $deviceResponseDataExplode[0];
+		if(is_numeric($deviceResponseDataExplode[1])){
+			$IMEI = $deviceResponseDataExplode[1];
+		}
+		else{
+			$IMEI = $deviceResponseDataExplode[2];
+		}
+		$Date_Stamp = date("Y-m-d H:i:s");
+
+		echo $Mysql_Query = "INSERT INTO device_response (command_prefix,imei,raw_data,date_stamp) values ('".$commandPrefix."','".$IMEI."','".$deviceResponseData."','".$Date_Stamp."')";
+		$Mysql_Query_Result = mysql_query($Mysql_Query) or die(mysql_error());
+		if($Mysql_Query_Result){
+			$Result = true;
+		}
+		return $Result;
+	}
+	
+	
+		
+	/*
+	Device response data
+	*/
+	function selDeviceResponseDataByIMEI($imei, $dateStamp){
+		
+		$Result = 0;
+		$dateStamp = date("Y-m-d", strtotime($dateStamp));
+		$Mysql_Query = "select * from device_response where imei = '".$imei."' and date(date_stamp) = '".$dateStamp."'";
+		$Mysql_Query_Result = mysql_query($Mysql_Query) or die(mysql_error());
+		$Row_Count = mysql_num_rows($Mysql_Query_Result);
+		return $Result = $Row_Count;
+	}
+?>

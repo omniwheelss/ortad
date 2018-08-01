@@ -4,7 +4,7 @@
 	$hostname="localhost";
 	$username="root";
 	$password="";
-	$dbname = "vts";
+	$dbname = "track";
 	$conn=mysql_connect($hostname,$username,$password);
 	$db=mysql_select_db($dbname,$conn);
 	if(!$db)

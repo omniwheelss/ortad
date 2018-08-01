@@ -7,7 +7,6 @@
 #
 #######################################################
 
-
 	$Administration_Home="http://localhost/biz/FAdmin";
 	$Cook_Name = "Elevator";
 	$Title = "ELEVATOR - Administration";

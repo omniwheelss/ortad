@@ -3,12 +3,12 @@
 if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST['from']) && isset($_REQUEST['to']) ){
 
 	include_once("./lib/includes.php");
-	$POI_Alerts_Table_Name = 'geo_fence_alerts';
+	$POI_Alerts_Table_Name = 'geo_fence_alerts_new';
 	$POI_Table_Name = 'geo_fence';
 	
 	$From_Date = $_REQUEST['from'];
 	$To_Date = $_REQUEST['to'];
-	
+
 	//Call the function to generate the array
 	if(!empty($From_Date) && !empty($To_Date)) {
 		$Date_Array = createDateRangeArray($From_Date, $To_Date);
@@ -65,6 +65,37 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST[
 		}
 		return $Result;
 	}	
+
+
+	############################################
+	# 
+	#	Date Array
+	#
+	############################################
+
+	// For all the Date
+	foreach($Date_Array as $Date_Val){
+		
+		// For all the IMEI
+		foreach($IMEI_Array as $IMEI){
+			
+			$Check_Exist_Result = Check_Exist($POI_Alerts_Table_Name, "date(date_stamp) = '".$Date_Val."' and imei = ".$IMEI." ");
+
+			if($Check_Exist_Result == 0){
+
+				//Get Account ID based on IMEI
+				$Get_AccountID_IMEI = Get_AccountID_IMEI($IMEI);
+					
+				// Call the Geofence Calculation Report
+				$Geofence_Calculator_Result = Geofence_Calculator_Report($Date_Val, $IMEI, $Get_AccountID_IMEI,	$POI_Table_Name, $POI_Alerts_Table_Name);
+			
+				echo "<br />Finished for ".$IMEI."--On--".$Date_Val."";	
+			}	
+			else{
+				echo "<br />Already genereated for ".$Date_Val." - ".$IMEI."";
+			}
+		}
+	}		
 	
 	
 	############################################
@@ -98,56 +129,25 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do' && isset($_REQUEST[
 				else{
 					//Insert Geofence once data inserted for first time
 					if ($Geofence_Existing_Alerts_Status[$Trip_Index] == 'IN' && $Trip_Status[$Trip_Index] == 'OUT'){
-						
+						echo "SEENi-OUT";
 						$Geofence_Alerts_Insert = Geofence_Alerts_Insert($Get_AccountID_IMEI, $IMEI, $Latitude, $Longitude, $Location_Name, $Trip_Status[$Trip_Index],$Alert_Dispatch, $Trip_Index, $Device_Date_Stamp, $Server_Date_Stamp, $Data, $Table_Name);
-						
 					}
 					else if ($Geofence_Existing_Alerts_Status[$Trip_Index] == 'OUT' && $Trip_Status[$Trip_Index] == 'IN'){
-						
+						echo "SEENi-IN";
 						$Geofence_Alerts_Insert = Geofence_Alerts_Insert($Get_AccountID_IMEI, $IMEI, $Latitude, $Longitude, $Location_Name, $Trip_Status[$Trip_Index],$Alert_Dispatch, $Trip_Index, $Device_Date_Stamp, $Server_Date_Stamp, $Data, $Table_Name);
-						
 					}
 				}
 				$G++;
 			}
-			
 		}	
-		echo $Debug_Result.="<hr />";
+		$Debug_Result.="<hr />";
 		if($Geofence_Alerts_Insert)
 			return true;
 		else
 			return false;
 	}
-
-	############################################
-	# 
-	#	Date Array
-	#
-	############################################
 	
-	// For all the Date
-	foreach($Date_Array as $Date_Val){
-		
-		// For all the IMEI
-		foreach($IMEI_Array as $IMEI){
-			
-			$Check_Exist_Result = Check_Exist($POI_Alerts_Table_Name, "date(date_stamp) = '".$Date_Val."' and imei = ".$IMEI." ");
-
-			if($Check_Exist_Result == 0){
-
-				//Get Account ID based on IMEI
-				$Get_AccountID_IMEI = Get_AccountID_IMEI($IMEI);
-					
-				// Call the Geofence Calculation Report
-				$Geofence_Calculator_Result = Geofence_Calculator_Report($Date_Val, $IMEI, $Get_AccountID_IMEI,	$POI_Table_Name, $POI_Alerts_Table_Name);
-			
-				echo "<br />Finished for ".$IMEI."--On--".$Date_Val."";	
-			}	
-			else{
-				echo "<br />Already genereated for ".$Date_Val." - ".$IMEI."";
-			}
-		}
-	}		
+	
 }	
 else{
 	echo "Geofence Calculation - parameter empty";

@@ -26,6 +26,7 @@ if(isset($_REQUEST['action']) && $_REQUEST['action'] == 'do'){
 		echo "<br />Stopped Time -- ".$Get_Summary[4];
 		echo "<br />Idle Time -- ".$Get_Summary[5];
 		echo "<br />Unknown Time -- ".$Get_Summary[6];
+		echo "<br />Total Different Time -- ".$Get_Summary[7];
 		echo "<hr />";
 		
 	}	

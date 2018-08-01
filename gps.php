@@ -60,6 +60,8 @@
 				else{
 					PrintMessage("Device Data Not Inserted",$Debug);
 				}
+
+				include("device_status.php");
 				
 				############################################
 				#
